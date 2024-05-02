@@ -13,7 +13,6 @@ from cpu import HookBase, Trainer, set_random_seed
 
 
 class _EvalHook(HookBase):
-
     def __init__(self, eval_func):
         self.eval_func = eval_func
         self.all_losses = []
@@ -30,7 +29,6 @@ class _EvalHook(HookBase):
 
 
 class Net(nn.Module):
-
     def __init__(self, device):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
@@ -85,7 +83,9 @@ def _test(model, test_loader):
     return test_loss, accuracy
 
 
-def _plain_train_loop(model, train_loader, test_loader, optimizer, lr_scheduler, max_epochs):
+def _plain_train_loop(
+    model, train_loader, test_loader, optimizer, lr_scheduler, max_epochs
+):
     all_losses = []
     all_test_losses = []
     all_accuracy = []
@@ -108,13 +108,17 @@ def _plain_train_loop(model, train_loader, test_loader, optimizer, lr_scheduler,
 def _setup(dir, device, train_batch_size=64, test_batch_size=1000):
     set_random_seed(seed=1, deterministic=True)
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,)),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,)),
+        ]
+    )
     train_dataset = datasets.MNIST(dir, train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST(dir, train=False, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=train_batch_size)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=train_batch_size
+    )
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size)
 
     model = Net(device)
@@ -126,13 +130,19 @@ def _setup(dir, device, train_batch_size=64, test_batch_size=1000):
 def test_minist_training(device="cpu", max_epochs=1):
     with tempfile.TemporaryDirectory() as dir:
         model, optimizer, lr_scheduler, train_loader, test_loader = _setup(dir, device)
-        all_losses, all_test_losses, all_accuracy = _plain_train_loop(model, train_loader,
-                                                                      test_loader, optimizer,
-                                                                      lr_scheduler, max_epochs)
+        all_losses, all_test_losses, all_accuracy = _plain_train_loop(
+            model, train_loader, test_loader, optimizer, lr_scheduler, max_epochs
+        )
 
         model, optimizer, lr_scheduler, train_loader, test_loader = _setup(dir, device)
-        trainer = Trainer(model=model, optimizer=optimizer, lr_scheduler=lr_scheduler,
-                          data_loader=train_loader, max_epochs=max_epochs, work_dir=dir)
+        trainer = Trainer(
+            model=model,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            data_loader=train_loader,
+            max_epochs=max_epochs,
+            work_dir=dir,
+        )
         hook = _EvalHook(lambda: _test(model, test_loader))
         trainer.register_hook(hook)
         trainer.train()

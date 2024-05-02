@@ -15,7 +15,14 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from train_minist import Net, build_dataset, parse_args, test
 
-from cpu import EvalHook, Trainer, init_distributed, save_args, set_random_seed, setup_logger
+from cpu import (
+    EvalHook,
+    Trainer,
+    init_distributed,
+    save_args,
+    set_random_seed,
+    setup_logger,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +44,16 @@ def main():
 
     # 3. Create data_loader, model, optimizer, lr_scheduler
     train_dataset, test_dataset = build_dataset(args.dataset_dir)
-    train_sampler = DistributedSampler(train_dataset) if is_distributed else None  # [Step 2]
+    train_sampler = (
+        DistributedSampler(train_dataset) if is_distributed else None
+    )  # [Step 2]
     # DistributedSampler will do shuffle, so we set `shuffle=False`
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=train_sampler,
-                              shuffle=(train_sampler is None))
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        sampler=train_sampler,
+        shuffle=(train_sampler is None),
+    )
     test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size)
 
     model = Net(device)
@@ -51,13 +64,24 @@ def main():
     lr_scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
 
     # 4. Create Trainer
-    trainer = Trainer(model, optimizer, lr_scheduler, train_loader, args.epochs,
-                      work_dir=args.work_dir, log_period=args.log_interval)
-    trainer.register_hooks([
-        EvalHook(1, lambda: test(model, test_loader)),
-        # Refer to inference_hook.py
-        InferenceHook(test_dataset)
-    ] if rank == 0 else [])  # [Step 4]
+    trainer = Trainer(
+        model,
+        optimizer,
+        lr_scheduler,
+        train_loader,
+        args.epochs,
+        work_dir=args.work_dir,
+        log_period=args.log_interval,
+    )
+    trainer.register_hooks(
+        [
+            EvalHook(1, lambda: test(model, test_loader)),
+            # Refer to inference_hook.py
+            InferenceHook(test_dataset),
+        ]
+        if rank == 0
+        else []
+    )  # [Step 4]
     trainer.train()
 
 

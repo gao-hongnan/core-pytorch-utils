@@ -26,7 +26,6 @@ else:
 
 
 class _SimpleModel(nn.Module):
-
     def __init__(self, device):
         super().__init__()
         self.fc = nn.Linear(10, 10)
@@ -41,7 +40,6 @@ class _SimpleModel(nn.Module):
 
 
 class _SimpleDataset:
-
     def __init__(self):
         self.data = torch.rand(10, 10)
         self.target = torch.rand(10, 10)
@@ -83,7 +81,9 @@ def _create_new_trainer(
     if not plateau:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size)
     else:
-        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=patience)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, patience=patience
+        )
     data_loader = DataLoader(_simple_dataset)
     trainer = Trainer(
         model,
@@ -149,26 +149,32 @@ def test_basic_run():
 
 @pytest.mark.skipif(not _TF_AVAILABLE, reason="The test needs tensorflow")
 def test_tensorboard_logging():
-
-    def run_one_test(eval_hook_period, logger_hook_period, simple_hook_period, max_epochs=9):
-
+    def run_one_test(
+        eval_hook_period, logger_hook_period, simple_hook_period, max_epochs=9
+    ):
         class SimpleHook(HookBase):
-
             def __init__(self, period=1):
                 self.period = period
 
             def after_iter(self) -> None:
                 if self.every_n_inner_iters(self.period):
-                    self.log(self.trainer.cur_iter, metric1=self.trainer.cur_iter, smooth=False)
+                    self.log(
+                        self.trainer.cur_iter,
+                        metric1=self.trainer.cur_iter,
+                        smooth=False,
+                    )
 
         with tempfile.TemporaryDirectory() as dir:
-            trainer = _create_new_trainer(max_epochs=max_epochs, work_dir=dir,
-                                          log_period=logger_hook_period)
+            trainer = _create_new_trainer(
+                max_epochs=max_epochs, work_dir=dir, log_period=logger_hook_period
+            )
             test_func = mock.Mock(return_value={"metric2": 3.0})
-            trainer.register_hooks([
-                EvalHook(eval_hook_period, test_func),
-                SimpleHook(simple_hook_period),
-            ])
+            trainer.register_hooks(
+                [
+                    EvalHook(eval_hook_period, test_func),
+                    SimpleHook(simple_hook_period),
+                ]
+            )
             trainer.train()
 
             tb_log_file = os.listdir(os.path.join(dir, "tb_logs"))
@@ -189,8 +195,9 @@ def test_tensorboard_logging():
             return lrs, metric1s, metric2s
 
     # no period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=1, logger_hook_period=1,
-                                           simple_hook_period=1)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=1, logger_hook_period=1, simple_hook_period=1
+    )
     assert len(lrs) == 90
     true_lrs = [0.1] * 30 + [0.01] * 30 + [0.001] * 30
     for lr, true_lr in zip(lrs, true_lrs):
@@ -199,8 +206,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 9
 
     # only eval_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=3, logger_hook_period=1,
-                                           simple_hook_period=1)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=3, logger_hook_period=1, simple_hook_period=1
+    )
     assert len(lrs) == 90
     true_lrs = [0.1] * 30 + [0.01] * 30 + [0.001] * 30
     for lr, true_lr in zip(lrs, true_lrs):
@@ -209,8 +217,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 3
 
     # only logger_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=1, logger_hook_period=3,
-                                           simple_hook_period=1)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=1, logger_hook_period=3, simple_hook_period=1
+    )
     assert len(lrs) == 36
     true_lrs = [0.1] * 12 + [0.01] * 12 + [0.001] * 12
     for lr, true_lr in zip(lrs, true_lrs):
@@ -221,8 +230,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 9
 
     # only simple_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=1, logger_hook_period=1,
-                                           simple_hook_period=3)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=1, logger_hook_period=1, simple_hook_period=3
+    )
     assert len(lrs) == 90
     true_lrs = [0.1] * 30 + [0.01] * 30 + [0.001] * 30
     for lr, true_lr in zip(lrs, true_lrs):
@@ -233,8 +243,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 9
 
     # eval_hook_period + logger_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=3, logger_hook_period=4,
-                                           simple_hook_period=1)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=3, logger_hook_period=4, simple_hook_period=1
+    )
     assert len(lrs) == 27
     true_lrs = [0.1] * 9 + [0.01] * 9 + [0.001] * 9
     for lr, true_lr in zip(lrs, true_lrs):
@@ -245,8 +256,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 3
 
     # eval_hook_period + simple_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=3, logger_hook_period=1,
-                                           simple_hook_period=4)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=3, logger_hook_period=1, simple_hook_period=4
+    )
     assert len(lrs) == 90
     true_lrs = [0.1] * 30 + [0.01] * 30 + [0.001] * 30
     for lr, true_lr in zip(lrs, true_lrs):
@@ -257,8 +269,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 3
 
     # logger_hook_period + simple_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=1, logger_hook_period=3,
-                                           simple_hook_period=4)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=1, logger_hook_period=3, simple_hook_period=4
+    )
     assert len(lrs) == 36
     true_lrs = [0.1] * 12 + [0.01] * 12 + [0.001] * 12
     for lr, true_lr in zip(lrs, true_lrs):
@@ -269,8 +282,9 @@ def test_tensorboard_logging():
     assert len(metric2s) == 9
 
     # eval_hook_period + logger_hook_period + simple_hook_period
-    lrs, metric1s, metric2s = run_one_test(eval_hook_period=3, logger_hook_period=3,
-                                           simple_hook_period=4)
+    lrs, metric1s, metric2s = run_one_test(
+        eval_hook_period=3, logger_hook_period=3, simple_hook_period=4
+    )
     assert len(lrs) == 36
     true_lrs = [0.1] * 12 + [0.01] * 12 + [0.001] * 12
     for lr, true_lr in zip(lrs, true_lrs):
@@ -299,7 +313,8 @@ def test_checkpoint_and_resume(device="cpu"):
             # test periodically checkpointing
             for should_ckpt_epoch in [2, 3]:
                 assert os.path.exists(
-                    os.path.join(dir1, f"checkpoints/epoch_{should_ckpt_epoch}.pth"))
+                    os.path.join(dir1, f"checkpoints/epoch_{should_ckpt_epoch}.pth")
+                )
             assert os.path.exists(os.path.join(dir1, "checkpoints/latest.pth"))
 
             total_losses = trainer.metric_storage._history["total_loss"]._history
@@ -329,7 +344,9 @@ def test_checkpoint_and_resume(device="cpu"):
                 assert os.path.exists(os.path.join(dir2, "checkpoints/epoch_3.pth"))
                 assert os.path.exists(os.path.join(dir2, "checkpoints/latest.pth"))
 
-                total_losses_resume = trainer.metric_storage._history["total_loss"]._history
+                total_losses_resume = trainer.metric_storage._history[
+                    "total_loss"
+                ]._history
 
                 epoch_3_smoothed_losses_resume = []
                 for line in open(os.path.join(dir2, "log_rank0.txt")):
@@ -348,7 +365,9 @@ def test_checkpoint_and_resume(device="cpu"):
 
                 # If the metric storage resumes correctly,
                 # the training smoothed losses should be the same too.
-                for loss1, loss2 in zip(epoch_3_smoothed_losses, epoch_3_smoothed_losses_resume):
+                for loss1, loss2 in zip(
+                    epoch_3_smoothed_losses, epoch_3_smoothed_losses_resume
+                ):
                     assert loss1 == loss2
 
 
@@ -369,14 +388,19 @@ def test_eval_hook():
 
 def test_checkpoint_hook():
     with tempfile.TemporaryDirectory() as dir:
-        trainer = _create_new_trainer(max_epochs=10, work_dir=dir, max_num_checkpoints=3,
-                                      checkpoint_period=2)
+        trainer = _create_new_trainer(
+            max_epochs=10, work_dir=dir, max_num_checkpoints=3, checkpoint_period=2
+        )
         trainer.train()
         for epoch in range(10):
             if epoch in [5, 7, 9]:
-                assert os.path.exists(os.path.join(dir, f"checkpoints/epoch_{epoch}.pth"))
+                assert os.path.exists(
+                    os.path.join(dir, f"checkpoints/epoch_{epoch}.pth")
+                )
             else:
-                assert not os.path.exists(os.path.join(dir, f"checkpoints/epoch_{epoch}.pth"))
+                assert not os.path.exists(
+                    os.path.join(dir, f"checkpoints/epoch_{epoch}.pth")
+                )
 
 
 def test_lr_update_hook():
@@ -390,7 +414,6 @@ def test_lr_update_hook():
             return {"Eval Metric": eval_metrics[eval_cnt[0]]}
 
         class CollectLRHook(HookBase):
-
             def __init__(self):
                 self.lrs = []
 
@@ -406,7 +429,6 @@ def test_lr_update_hook():
 
 
 def test_hook_priority():
-
     class Hook1(HookBase):
         priority = 1
 
@@ -420,11 +442,15 @@ def test_hook_priority():
         trainer = _create_new_trainer(work_dir=dir)
         trainer.register_hooks([Hook3()])
         trainer.register_hooks([Hook1()])
-        hooks = [hook for hook in trainer._hooks if isinstance(hook, (Hook1, Hook2, Hook3))]
+        hooks = [
+            hook for hook in trainer._hooks if isinstance(hook, (Hook1, Hook2, Hook3))
+        ]
         assert isinstance(hooks[0], Hook1)
         assert isinstance(hooks[1], Hook3)
         trainer.register_hooks([Hook2()])
-        hooks = [hook for hook in trainer._hooks if isinstance(hook, (Hook1, Hook2, Hook3))]
+        hooks = [
+            hook for hook in trainer._hooks if isinstance(hook, (Hook1, Hook2, Hook3))
+        ]
         assert isinstance(hooks[0], Hook1)
         assert isinstance(hooks[1], Hook2)
         assert isinstance(hooks[2], Hook3)

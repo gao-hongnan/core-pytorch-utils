@@ -5,3 +5,5 @@ tabulate
 termcolor
 tensorboard
 protobuf~=3.19.0
+isort
+black

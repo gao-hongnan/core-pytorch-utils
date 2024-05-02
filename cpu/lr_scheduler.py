@@ -70,7 +70,9 @@ class LRWarmupScheduler:
 
         if warmup_t:
             # pre-compute the regular lr if no warmup is performed
-            max_t = warmup_t // epoch_len if by_epoch and not warmup_by_epoch else warmup_t
+            max_t = (
+                warmup_t // epoch_len if by_epoch and not warmup_by_epoch else warmup_t
+            )
             self.regular_lrs_per_t = self._pre_compute_regular_lrs_per_t(max_t)
 
         self.last_iter = self.last_epoch = 0
@@ -100,14 +102,17 @@ class LRWarmupScheduler:
             return regular_lrs_per_t * (max_t + 1)
         for _ in range(max_t):
             self.torch_scheduler.step()
-            regular_lrs_per_t.append([param_group["lr"] for param_group in self.param_groups])
+            regular_lrs_per_t.append(
+                [param_group["lr"] for param_group in self.param_groups]
+            )
         return regular_lrs_per_t
 
     def _get_warmup_lrs(self, t: int, regular_lrs: List[float]) -> List[float]:
         alpha = t / self.warmup_t
         if self.warmup_mode == "fix":
             return [
-                self.warmup_init_lr * (1 - alpha) + base_lr * alpha for base_lr in self.base_lrs
+                self.warmup_init_lr * (1 - alpha) + base_lr * alpha
+                for base_lr in self.base_lrs
             ]
         elif self.warmup_mode == "factor":
             factor = self.warmup_factor * (1 - alpha) + alpha
@@ -137,7 +142,10 @@ class LRWarmupScheduler:
         self.last_epoch += 1
         if self.warmup_by_epoch and self.last_epoch < self.warmup_t:
             self._set_lrs(
-                self._get_warmup_lrs(self.last_epoch, self.regular_lrs_per_t[self.last_epoch]))
+                self._get_warmup_lrs(
+                    self.last_epoch, self.regular_lrs_per_t[self.last_epoch]
+                )
+            )
         elif self.warmup_by_epoch and self.last_epoch == self.warmup_t:
             self._set_lrs(self.regular_lrs_per_t[-1])
         elif not self.in_iter_warmup:
@@ -157,7 +165,9 @@ class LRWarmupScheduler:
         if self.last_iter < self.warmup_t:
             self.in_iter_warmup = True
             t = self.last_iter // self.epoch_len if self.by_epoch else self.last_iter
-            self._set_lrs(self._get_warmup_lrs(self.last_iter, self.regular_lrs_per_t[t]))
+            self._set_lrs(
+                self._get_warmup_lrs(self.last_iter, self.regular_lrs_per_t[t])
+            )
         elif self.last_iter == self.warmup_t:
             self._set_lrs(self.regular_lrs_per_t[-1])
         else:
@@ -167,7 +177,11 @@ class LRWarmupScheduler:
 
     def state_dict(self) -> Dict[str, Any]:
         """Returns the state of the scheduler as a dict."""
-        state = {key: value for key, value in self.__dict__.items() if key != "torch_scheduler"}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "torch_scheduler"
+        }
         state["torch_scheduler"] = self.torch_scheduler.state_dict()
         return state
 

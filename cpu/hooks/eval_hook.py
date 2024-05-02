@@ -27,7 +27,9 @@ class EvalHook(HookBase):
         self.trainer.model.train()
 
         if res:
-            assert isinstance(res, dict), f"Eval function must return a dict. Got {res} instead."
+            assert isinstance(
+                res, dict
+            ), f"Eval function must return a dict. Got {res} instead."
             for k, v in res.items():
                 try:
                     v = float(v)
@@ -36,7 +38,9 @@ class EvalHook(HookBase):
                         f"Eval function should return a dict of float. Got '{k}: {v}' instead."
                     ) from e
             train_by_epoch = self.trainer.train_by_epoch
-            counter = self.trainer.cur_epoch if train_by_epoch else self.trainer.cur_iter
+            counter = (
+                self.trainer.cur_epoch if train_by_epoch else self.trainer.cur_iter
+            )
             self.log(counter, **res, smooth=False)
 
     def after_epoch(self) -> None:

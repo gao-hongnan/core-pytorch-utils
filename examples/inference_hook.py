@@ -16,7 +16,7 @@ class InferenceHook(HookBase):
     def after_epoch(self):
         model = self.trainer.model
         model.eval()
-        ids = np.random.permutation(len(self.test_dataset))[:self.num]
+        ids = np.random.permutation(len(self.test_dataset))[: self.num]
         for i in range(self.num):
             id = ids[i]
             # img: [1, 28, 28], target: int

@@ -15,8 +15,14 @@ from torch import Tensor
 from torch._C._distributed_c10d import ProcessGroup
 
 __all__ = [
-    "all_gather", "gather", "reduce_dict", "setup_print_for_distributed", "get_world_size",
-    "get_rank", "is_main_process", "init_distributed"
+    "all_gather",
+    "gather",
+    "reduce_dict",
+    "setup_print_for_distributed",
+    "get_world_size",
+    "get_rank",
+    "is_main_process",
+    "init_distributed",
 ]
 
 logger = logging.getLogger(__name__)
@@ -47,7 +53,9 @@ def all_gather(data: Any, group: Optional[ProcessGroup] = None) -> List[Any]:
     if get_world_size() == 1:
         return [data]
     if group is None:
-        group = _get_global_gloo_group()  # use CPU group by default, to reduce GPU RAM usage.
+        group = (
+            _get_global_gloo_group()
+        )  # use CPU group by default, to reduce GPU RAM usage.
     world_size = dist.get_world_size(group)
     if world_size == 1:
         return [data]
@@ -86,7 +94,9 @@ def gather(data: Any, dst: int = 0, group: Optional[ProcessGroup] = None) -> Lis
         return []
 
 
-def reduce_dict(input_dict: Dict[str, Tensor], average: bool = True) -> Dict[str, Tensor]:
+def reduce_dict(
+    input_dict: Dict[str, Tensor], average: bool = True
+) -> Dict[str, Tensor]:
     """Reduce the values in the dictionary from all processes so that all processes
     have the averaged results.
 
@@ -122,6 +132,7 @@ def setup_print_for_distributed(is_master: bool) -> None:
         is_master (bool): If the current process is the master process or not.
     """
     import builtins
+
     builtin_print = builtins.print
 
     def print(*args, **kwargs):
@@ -198,11 +209,13 @@ def init_distributed(auto: bool = False) -> Tuple[int]:
 
     assert "MASTER_ADDR" in os.environ and "MASTER_PORT" in os.environ, (
         "init_method='env://' requires the two environment variables: "
-        "MASTER_ADDR and MASTER_PORT.")
+        "MASTER_ADDR and MASTER_PORT."
+    )
 
     if auto:
-        assert os.environ["MASTER_ADDR"] == "127.0.0.1", (
-            "`auto` is not supported in multi-machine jobs.")
+        assert (
+            os.environ["MASTER_ADDR"] == "127.0.0.1"
+        ), "`auto` is not supported in multi-machine jobs."
         port = os.environ["MASTER_PORT"]
         if not _is_free_port(port):
             new_port = _find_free_port()
@@ -210,7 +223,9 @@ def init_distributed(auto: bool = False) -> Tuple[int]:
             os.environ["MASTER_PORT"] = new_port
 
     print(f"| distributed init (rank {rank})", flush=True)
-    dist.init_process_group(backend="nccl", init_method="env://", rank=rank, world_size=world_size)
+    dist.init_process_group(
+        backend="nccl", init_method="env://", rank=rank, world_size=world_size
+    )
     dist.barrier()
     torch.cuda.set_device(local_rank)
     setup_print_for_distributed(rank == 0)

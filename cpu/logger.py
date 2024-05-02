@@ -9,7 +9,6 @@ logger_initialized = {}
 
 
 class _ColorfulFormatter(logging.Formatter):
-
     def formatMessage(self, record):
         log = super(_ColorfulFormatter, self).formatMessage(record)
         if record.levelno == logging.DEBUG:
@@ -23,8 +22,13 @@ class _ColorfulFormatter(logging.Formatter):
         return prefix + " " + log
 
 
-def setup_logger(name: Optional[str] = None, output_dir: Optional[str] = None, rank: int = 0,
-                 log_level: int = logging.INFO, color: bool = True) -> logging.Logger:
+def setup_logger(
+    name: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    rank: int = 0,
+    log_level: int = logging.INFO,
+    color: bool = True,
+) -> logging.Logger:
     """Initialize the logger.
 
     If the logger has not been initialized, this method will initialize the
@@ -52,10 +56,13 @@ def setup_logger(name: Optional[str] = None, output_dir: Optional[str] = None, r
     # the messages of this logger will not be propagated to its parent
     logger.propagate = False
 
-    formatter = logging.Formatter("[%(asctime)s %(name)s %(levelname)s]: %(message)s",
-                                  datefmt="%m/%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "[%(asctime)s %(name)s %(levelname)s]: %(message)s", datefmt="%m/%d %H:%M:%S"
+    )
     color_formatter = _ColorfulFormatter(
-        colored("[%(asctime)s %(name)s]: ", "green") + "%(message)s", datefmt="%m/%d %H:%M:%S")
+        colored("[%(asctime)s %(name)s]: ", "green") + "%(message)s",
+        datefmt="%m/%d %H:%M:%S",
+    )
 
     # create console handler for master process
     if rank == 0:
@@ -66,7 +73,9 @@ def setup_logger(name: Optional[str] = None, output_dir: Optional[str] = None, r
 
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
-        file_handler = logging.FileHandler(os.path.join(output_dir, f"log_rank{rank}.txt"))
+        file_handler = logging.FileHandler(
+            os.path.join(output_dir, f"log_rank{rank}.txt")
+        )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

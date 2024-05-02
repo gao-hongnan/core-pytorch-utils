@@ -22,8 +22,13 @@ class ConfigArgumentParser(argparse.ArgumentParser):
 
     def __init__(self, *args, **kwargs):
         self.config_parser = argparse.ArgumentParser(add_help=False)
-        self.config_parser.add_argument("-c", "--config", default=None, metavar="FILE",
-                                        help="Where to load YAML configuration.")
+        self.config_parser.add_argument(
+            "-c",
+            "--config",
+            default=None,
+            metavar="FILE",
+            help="Where to load YAML configuration.",
+        )
         self.option_names = []
         super().__init__(*args, **kwargs)
 
@@ -41,7 +46,9 @@ class ConfigArgumentParser(argparse.ArgumentParser):
             with open(res.config, "r") as f:
                 config_vars = yaml.safe_load(f)
             for key in config_vars:
-                assert key in self.option_names, f"Unexpected configuration entry: {key}"
+                assert (
+                    key in self.option_names
+                ), f"Unexpected configuration entry: {key}"
             self.set_defaults(**config_vars)
 
         return super().parse_args(remaining_argv)

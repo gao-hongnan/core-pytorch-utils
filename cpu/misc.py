@@ -50,12 +50,14 @@ def collect_env() -> str:
 
     try:
         import torchvision
+
         env_info.append(("TorchVision", torchvision.__version__))
     except ModuleNotFoundError:
         pass
 
     try:
         import cv2
+
         env_info.append(("OpenCV", cv2.__version__))
     except ModuleNotFoundError:
         pass
@@ -72,7 +74,9 @@ def set_random_seed(seed: Optional[int] = None, deterministic: bool = False) -> 
     """
     if seed is None or seed < 0:
         new_seed = np.random.randint(2**32)
-        logger.info(f"Got invalid seed: {seed}, will use the randomly generated seed: {new_seed}")
+        logger.info(
+            f"Got invalid seed: {seed}, will use the randomly generated seed: {new_seed}"
+        )
         seed = new_seed
     random.seed(seed)
     np.random.seed(seed)
@@ -82,8 +86,10 @@ def set_random_seed(seed: Optional[int] = None, deterministic: bool = False) -> 
     if deterministic:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-        logger.info("The CUDNN is set to deterministic. This will increase reproducibility, "
-                    "but may slow down your training considerably.")
+        logger.info(
+            "The CUDNN is set to deterministic. This will increase reproducibility, "
+            "but may slow down your training considerably."
+        )
 
 
 def symlink(src: str, dst: str, overwrite: bool = True, **kwargs) -> None:

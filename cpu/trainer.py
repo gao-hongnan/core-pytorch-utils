@@ -106,15 +106,24 @@ class Trainer:
         # evaluation during training, you can overwrite its train() method.
         model.train()
 
-        assert (max_epochs > 0) ^ (max_iters > 0), "Please specify either max_epochs or max_iters."
+        assert (max_epochs > 0) ^ (
+            max_iters > 0
+        ), "Please specify either max_epochs or max_iters."
         self.train_by_epoch = max_epochs > 0
 
         self.model = model
         self.optimizer = optimizer
         epoch_len = len(data_loader) if self.train_by_epoch else None
-        self.lr_scheduler = LRWarmupScheduler(lr_scheduler, by_epoch, epoch_len, warmup_t,
-                                              warmup_by_epoch, warmup_mode, warmup_init_lr,
-                                              warmup_factor)
+        self.lr_scheduler = LRWarmupScheduler(
+            lr_scheduler,
+            by_epoch,
+            epoch_len,
+            warmup_t,
+            warmup_by_epoch,
+            warmup_mode,
+            warmup_init_lr,
+            warmup_factor,
+        )
         self.data_loader = data_loader
         self.unpack_batch_dict = unpack_batch_dict
         self.work_dir = work_dir
@@ -148,13 +157,17 @@ class Trainer:
     @property
     def inner_iter(self) -> int:
         """The iteration within the epoch, ranged in [0, epoch_len - 1]."""
-        assert self.train_by_epoch, "inner_iter is only available when training by epoch."
+        assert (
+            self.train_by_epoch
+        ), "inner_iter is only available when training by epoch."
         return self.cur_iter % self.epoch_len
 
     @property
     def cur_epoch(self) -> int:
         """The current epoch, ranged in [0, max_epochs - 1]."""
-        assert self.train_by_epoch, "cur_epoch is only available when training by epoch."
+        assert (
+            self.train_by_epoch
+        ), "cur_epoch is only available when training by epoch."
         return self.cur_iter // self.epoch_len
 
     @property
@@ -192,10 +205,12 @@ class Trainer:
 
         default_hooks = [LRUpdateHook(), DistributedHook()]
         if is_main_process():
-            default_hooks.extend([
-                CheckpointHook(self._checkpoint_period, self._max_num_checkpoints),
-                LoggerHook(self._log_period, tb_log_dir=self.tb_log_dir)
-            ])
+            default_hooks.extend(
+                [
+                    CheckpointHook(self._checkpoint_period, self._max_num_checkpoints),
+                    LoggerHook(self._log_period, tb_log_dir=self.tb_log_dir),
+                ]
+            )
         self.register_hooks(default_hooks)
         logger.info(f"Registered default hooks: {self.hook_info}")
 
@@ -205,11 +220,13 @@ class Trainer:
 
         os.makedirs(self.ckpt_dir, exist_ok=True)
         split_line = "-" * 50
-        logger.info(f"\n{split_line}\n"
-                    f"Work directory: {self.work_dir}\n"
-                    f"Checkpoint directory: {self.ckpt_dir}\n"
-                    f"Tensorboard directory: {self.tb_log_dir}\n"
-                    f"{split_line}")
+        logger.info(
+            f"\n{split_line}\n"
+            f"Work directory: {self.work_dir}\n"
+            f"Checkpoint directory: {self.ckpt_dir}\n"
+            f"Tensorboard directory: {self.tb_log_dir}\n"
+            f"{split_line}"
+        )
 
     def register_hooks(self, hooks: List[HookBase]) -> None:
         """Register hooks to the trainer.
@@ -247,8 +264,9 @@ class Trainer:
         for h in self._hooks:
             getattr(h, stage)()
 
-    def _log_iter_metrics(self, loss_dict: Dict[str, torch.Tensor], data_time: float,
-                          iter_time: float) -> None:
+    def _log_iter_metrics(
+        self, loss_dict: Dict[str, torch.Tensor], data_time: float, iter_time: float
+    ) -> None:
         """
         Args:
             loss_dict (dict): Dict of scalar losses.
@@ -274,13 +292,15 @@ class Trainer:
 
             # average the rest metrics
             metrics_dict = {
-                k: np.mean([x[k] for x in all_metrics_dict]) for k in all_metrics_dict[0].keys()
+                k: np.mean([x[k] for x in all_metrics_dict])
+                for k in all_metrics_dict[0].keys()
             }
             losses_reduced = sum(metrics_dict.values())
             if not np.isfinite(losses_reduced):
                 raise FloatingPointError(
                     f"Loss became infinite or NaN at iteration={self.cur_iter}! "
-                    f"loss_dict={metrics_dict}.")
+                    f"loss_dict={metrics_dict}."
+                )
 
             self.log(self.cur_iter, total_loss=losses_reduced)
             if len(metrics_dict) > 1:
@@ -339,9 +359,13 @@ class Trainer:
         self._grad_scaler.step(self.optimizer)
         self._grad_scaler.update()
 
-        self._log_iter_metrics(loss_dict, data_time, time.perf_counter() - iter_start_time)
+        self._log_iter_metrics(
+            loss_dict, data_time, time.perf_counter() - iter_start_time
+        )
 
-    def train(self, resume_from_checkpoint: Optional[str] = None, auto_resume: bool = True) -> None:
+    def train(
+        self, resume_from_checkpoint: Optional[str] = None, auto_resume: bool = True
+    ) -> None:
         """Start training.
 
         If ``resume_from_checkpoint`` is specified, resume from the given checkpoint.
@@ -383,8 +407,14 @@ class Trainer:
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "metric_storage": self.metric_storage,
         }
-        data.update(dict(epoch=self.cur_epoch) if self.train_by_epoch else dict(iter=self.cur_iter))
-        hook_states = {h.class_name: h.state_dict() for h in self._hooks if h.checkpointable}
+        data.update(
+            dict(epoch=self.cur_epoch)
+            if self.train_by_epoch
+            else dict(iter=self.cur_iter)
+        )
+        hook_states = {
+            h.class_name: h.state_dict() for h in self._hooks if h.checkpointable
+        }
         if hook_states:
             data["hooks"] = hook_states
         if self._enable_amp:
@@ -408,8 +438,10 @@ class Trainer:
         if path is None and auto_resume:
             latest_ckpt = osp.join(self.ckpt_dir, "latest.pth")
             if not os.path.exists(latest_ckpt):
-                logger.warning("You specify auto_resume=True, but we fail to find "
-                               f"{latest_ckpt} to auto resume from.")
+                logger.warning(
+                    "You specify auto_resume=True, but we fail to find "
+                    f"{latest_ckpt} to auto resume from."
+                )
             else:
                 logger.info(f"Found {latest_ckpt} to auto resume from.")
                 path = latest_ckpt
@@ -425,7 +457,8 @@ class Trainer:
         ckpt_num_gpus = checkpoint["num_gpus"]
         assert num_gpus == ckpt_num_gpus, (
             f"You are trying to load a checkpoint trained with {ckpt_num_gpus} GPUs, "
-            f"but currently only have {num_gpus} GPUs.")
+            f"but currently only have {num_gpus} GPUs."
+        )
 
         # 1. load epoch / iteration
         if self.train_by_epoch:
@@ -435,13 +468,19 @@ class Trainer:
             self.start_iter = checkpoint["iter"] + 1
 
         # 2. load model
-        incompatible = self.model_or_module.load_state_dict(checkpoint["model"], strict=False)
+        incompatible = self.model_or_module.load_state_dict(
+            checkpoint["model"], strict=False
+        )
         if incompatible.missing_keys:
-            logger.warning("Encounter missing keys when loading model weights:\n"
-                           f"{incompatible.missing_keys}")
+            logger.warning(
+                "Encounter missing keys when loading model weights:\n"
+                f"{incompatible.missing_keys}"
+            )
         if incompatible.unexpected_keys:
-            logger.warning("Encounter unexpected keys when loading model weights:\n"
-                           f"{incompatible.unexpected_keys}")
+            logger.warning(
+                "Encounter unexpected keys when loading model weights:\n"
+                f"{incompatible.unexpected_keys}"
+            )
 
         # 3. load metric_storage
         self.metric_storage = checkpoint["metric_storage"]
@@ -454,7 +493,9 @@ class Trainer:
 
         # 6. load grad scaler
         consistent_amp = not (self._enable_amp ^ ("grad_scaler" in checkpoint))
-        assert consistent_amp, "Found inconsistent AMP training setting when loading checkpoint."
+        assert (
+            consistent_amp
+        ), "Found inconsistent AMP training setting when loading checkpoint."
         if self._enable_amp:
             self._grad_scaler.load_state_dict(checkpoint["grad_scaler"])
 
@@ -464,10 +505,13 @@ class Trainer:
         missing_keys = [name for name in hook_names if name not in hook_states]
         unexpected_keys = [key for key in hook_states if key not in hook_names]
         if missing_keys:
-            logger.warning(f"Encounter missing keys when loading hook state dict:\n{missing_keys}")
+            logger.warning(
+                f"Encounter missing keys when loading hook state dict:\n{missing_keys}"
+            )
         if unexpected_keys:
             logger.warning(
-                f"Encounter unexpected keys when loading hook state dict:\n{unexpected_keys}")
+                f"Encounter unexpected keys when loading hook state dict:\n{unexpected_keys}"
+            )
 
         for key, value in hook_states.items():
             for h in self._hooks:
@@ -540,6 +584,9 @@ class MetricStorage(dict):
                 pair.
         """
         return {
-            key: (self._latest_iter[key], his_buf.avg if self._smooth[key] else his_buf.latest)
+            key: (
+                self._latest_iter[key],
+                his_buf.avg if self._smooth[key] else his_buf.latest,
+            )
             for key, his_buf in self._history.items()
         }
